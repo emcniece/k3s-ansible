@@ -1,0 +1,7 @@
+---
+- name: Configure postfix
+  hosts: pve
+  gather_facts: true
+  become: yes
+  roles:
+    - role: postfix

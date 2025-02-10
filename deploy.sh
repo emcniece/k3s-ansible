@@ -1,3 +1,3 @@
 #!/bin/bash
 
-ansible-playbook site.yml -i inventory/homelab/hosts.ini
+ansible-playbook site.yml

@@ -1,0 +1,81 @@
+- name: Install packages
+  apt:
+    pkg:
+    - libsasl2-modules
+    - postfix
+    - postfix-pcre
+
+- name: Clean up old files
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /etc/postfix/sasl_passwd
+    - /etc/postfix/smtp_header_checks
+
+- name: Create sasl_password
+  lineinfile:
+    path: /etc/postfix/sasl_passwd
+    state: present
+    line: "{{ postfix_relay }} {{ postfix_sender_address }}:{{ postfix_sender_password }}"
+    create: yes
+
+- name: Create sender replacement
+  lineinfile:
+    path: /etc/postfix/smtp_header_checks
+    state: present
+    line: "/^From:.*/ REPLACE From: {{ hostvars[inventory_hostname].ansible_hostname
+}}-alert {{ postfix_sender_address }}"
+    create: yes
+
+- name: Generate hashes
+  command: "postmap hash:{{ item }}"
+  with_items:
+    - /etc/postfix/sasl_passwd
+    - /etc/postfix/smtp_header_checks
+
+- name: Remove empty relayhost
+  lineinfile:
+    path: /etc/postfix/main.cf
+    state: absent
+    regexp: '^relayhost.*=$'
+
+- name: Insert SMTP config
+  blockinfile:
+    path: /etc/postfix/main.cf
+    block: |
+      relayhost = {{ postfix_relay }}
+      smtp_sasl_auth_enable = yes
+      smtp_sasl_security_options = noanonymous
+      smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+      smtp_use_tls = yes
+      smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+      smtp_header_checks = pcre:/etc/postfix/smtp_header_checks
+
+- name: Secure sasl_password
+  file:
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: '0600'
+  with_items:
+    - /etc/postfix/sasl_passwd
+    - /etc/postfix/sasl_passwd.db
+
+- name: Restart postfix
+  service:
+    name: postfix
+    state: restarted
+
+- name: Ensure postfix is in a running state
+  service:
+    name: postfix
+    state: started
+  register: postfixDetails
+  until: postfixDetails.status.ActiveState == "active"
+  retries: 3
+  delay: 5
+
+- name: Send test email
+  ansible.builtin.shell: |
+    echo "Sending test from Postfix playbook" | mail -s "Ansible Postfix test" -a "From: {{ postfix_sender_address }}" {{ postfix_sender_address }}

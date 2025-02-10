@@ -11,7 +11,7 @@ system_timezone: "America/Vancouver"
 flannel_iface: "eth0"
 
 # apiserver_endpoint is virtual ip-address which will be configured on each master
-apiserver_endpoint: "192.168.10.222"
+apiserver_endpoint: "192.168.10.40"
 
 # k3s_token is required  masters can talk together securely
 # this token should be alpha numeric only
@@ -59,7 +59,7 @@ metal_lb_speaker_tag_version: "v0.13.9"
 metal_lb_controller_tag_version: "v0.13.9"
 
 # metallb ip range for load balancer
-metal_lb_ip_range: "192.168.10.80-192.168.10.90"
+metal_lb_ip_range: "192.168.10.90-192.168.10.110"
 
 # Only enable if your nodes are proxmox LXC nodes, make sure to configure your proxmox nodes
 # in your hosts.ini file.
